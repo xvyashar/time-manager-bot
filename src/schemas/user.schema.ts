@@ -5,7 +5,7 @@ const schema = new Schema(
     numericId: Number,
     username: String,
     fullName: String,
-    pendingConfigs: [String],
+    pendingConfigs: Array,
   },
   { timestamps: true }
 );

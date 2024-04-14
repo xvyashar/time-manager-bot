@@ -3,6 +3,7 @@ import { config } from 'dotenv';
 import { connectDB, User, Group } from './schemas';
 import { getStartKeyboard } from './keyboards';
 import { KnownUserError } from './errors';
+import { validateConfig } from './utils';
 
 //* Init Env
 config();
@@ -53,6 +54,65 @@ bot.command('config', async (ctx) => {
   const message = await ctx.reply(
     'Send your configurations in this format as a reply of this message:\n---------------------------------------------------\n\n[DAYS YOU WANT TO STUDY] (eg. sat,sun,mon,...)\n[SESSION PERIODS] (eg. 16:00-18:00,20:00-22:00)\n[FOCUS & REST CYCLES] (eg. 25m-5m,1h-20m)\n\n---------------------------------------------------'
   );
+
+  //? update pending list
+  await User.updateOne(
+    { numericId: ctx.from.id },
+    {
+      $pull: {
+        pendingConfigs: { chatId: ctx.chat.id },
+      },
+    }
+  );
+  await User.updateOne(
+    { numericId: ctx.from.id },
+    {
+      $push: {
+        pendingConfigs: { chatId: ctx.chat.id, messageId: message.message_id },
+      },
+    }
+  );
+});
+
+bot.on('message', async (ctx) => {
+  if (!ctx.from) return;
+  if (!ctx.message.text) return;
+
+  if (ctx.message.reply_to_message) {
+    const {
+      message_id: messageId,
+      chat: { id: chatId },
+    } = ctx.message.reply_to_message;
+
+    //? validate user permission
+    const exist = await User.findOne({
+      numericId: ctx.from.id,
+      pendingConfigs: { chatId, messageId },
+    });
+    if (!exist) return;
+
+    //? validate config format
+    const extractedConfig = validateConfig(ctx.message.text);
+
+    //? update group config
+    await Group.updateOne({ chatId }, { config: extractedConfig });
+
+    //? remove user change request
+    await User.updateOne(
+      {
+        numericId: ctx.from.id,
+      },
+      {
+        $pull: { pendingConfigs: { chatId, messageId } },
+      }
+    );
+
+    ctx.reply('Group config updated successfully', {
+      reply_parameters: ctx.message
+        ? { message_id: ctx.message.message_id }
+        : undefined,
+    });
+  }
 });
 
 //* Error Handling
@@ -66,7 +126,15 @@ bot.catch((err) => {
   } else if (error instanceof HttpError) {
     console.error('Could not contact Telegram:', error);
   } else if (error instanceof KnownUserError) {
-    ctx.reply(`❌ ${error.message}`, { reply_markup: error.keyboard });
+    console.error('Known user error');
+    ctx.reply(`❌ ${error.message}`, {
+      reply_markup: error.keyboard,
+      reply_parameters: ctx.message
+        ? { message_id: ctx.message.message_id }
+        : undefined,
+    });
+  } else {
+    console.error(error);
   }
 });
 

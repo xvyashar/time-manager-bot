@@ -4,6 +4,7 @@ const schema = new Schema(
   {
     chatId: Number,
     title: String,
+    config: Object,
   },
   { timestamps: true }
 );
