@@ -1,0 +1,22 @@
+{
+  "name": "time-manger-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "build": "rimraf dist && tsc",
+    "start": "pnpm build && node ./dist/app.js",
+    "start:watch": "nodemon --exec \"pnpm start\" -e ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "grammy": "^1.22.4",
+    "rimraf": "^5.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7"
+  }
+}
