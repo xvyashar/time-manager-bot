@@ -1,15 +1,28 @@
-import { Bot, GrammyError, HttpError } from 'grammy';
+import {
+  Bot,
+  Context,
+  GrammyError,
+  HttpError,
+  MemorySessionStorage,
+} from 'grammy';
 import { config } from 'dotenv';
 import { connectDB, User, Group } from './schemas';
 import { getStartKeyboard } from './keyboards';
 import { KnownUserError } from './errors';
 import { validateConfig } from './utils';
+import { chatMembers, type ChatMembersFlavor } from '@grammyjs/chat-members';
+import { ChatMember } from 'grammy/types';
 
 //* Init Env
 config();
 
 //* Init Bot Components
-const bot = new Bot(process.env.BOT_TOKEN as string);
+type MyContext = Context & ChatMembersFlavor;
+const adapter = new MemorySessionStorage<ChatMember>();
+
+const bot = new Bot<MyContext>(process.env.BOT_TOKEN as string);
+bot.use(chatMembers(adapter));
+
 connectDB();
 
 //* Commands
@@ -51,8 +64,30 @@ bot.command('config', async (ctx) => {
       getStartKeyboard()
     );
 
+  const botInfo = await bot.botInfo;
+  const botMembership = await ctx.api.getChatMember(ctx.chat.id, botInfo.id);
+
+  //? check bot admins right
+  if (
+    botMembership.status !== 'administrator' &&
+    botMembership.status !== 'creator'
+  )
+    throw new KnownUserError("I'm not admin. please make me admin first!");
+
+  //? check user admins right
+  const chatMember = await ctx.chatMembers.getChatMember();
+  if (chatMember.status !== 'administrator' && chatMember.status !== 'creator')
+    throw new KnownUserError("You're not allowed to manage this group!");
+
   const message = await ctx.reply(
-    'Send your configurations in this format as a reply of this message:\n---------------------------------------------------\n\n[DAYS YOU WANT TO STUDY] (eg. sat,sun,mon,...)\n[SESSION PERIODS] (eg. 16:00-18:00,20:00-22:00)\n[FOCUS & REST CYCLES] (eg. 25m-5m,1h-20m)\n\n---------------------------------------------------'
+    'Send your configurations in this format as a reply of this message:\n---------------------------------------------------\n\n[DAYS YOU WANT TO STUDY] (eg. sat,sun,mon,...)\n[SESSION PERIODS] (eg. 16:00-18:00,20:00-22:00)\n[FOCUS & REST CYCLES] (eg. 25m-5m,1h-20m)\n\n---------------------------------------------------',
+    {
+      reply_parameters: ctx.message
+        ? {
+            message_id: ctx.message.message_id,
+          }
+        : undefined,
+    }
   );
 
   //? update pending list
@@ -139,6 +174,9 @@ bot.catch((err) => {
 });
 
 //* Launch 🚀
-bot.start({ onStart: () => console.log('Bot is ready to use 🚀') });
+bot.start({
+  allowed_updates: ['chat_member', 'message'],
+  onStart: () => console.log('Bot is ready to use 🚀'),
+});
 
 export { bot };

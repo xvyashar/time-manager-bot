@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@grammyjs/chat-members": "^1.1.0",
     "dotenv": "^16.4.5",
     "grammy": "^1.22.4",
     "mongoose": "^8.3.1",
