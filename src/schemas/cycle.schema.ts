@@ -5,6 +5,7 @@ const schema = new Schema(
     group: {
       type: SchemaTypes.ObjectId,
       ref: 'groups',
+      unique: true,
     },
     currentSlotIndex: {
       type: Number,

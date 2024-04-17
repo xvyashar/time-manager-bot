@@ -10,11 +10,11 @@ export const schedulerCron = new CronJob(
   schedulerCronPattern,
   async () => {
     try {
-      //? manage groups cycles start and stop
       const groups = await Group.find();
       for (let i = 0; i < groups.length; i++) {
         const group = groups[i];
 
+        //* Validate Permissions
         const botInfo = await bot.botInfo;
         const botMembership = await bot.api.getChatMember(
           group.chatId as number,
@@ -29,6 +29,7 @@ export const schedulerCron = new CronJob(
 
         if (!group.config) continue;
 
+        //? get locale times
         const localeDate = moment().utcOffset(group.config.timezoneOffset);
         const time = `${
           localeDate.hours() < 10 ? '0' : ''
@@ -36,9 +37,11 @@ export const schedulerCron = new CronJob(
           localeDate.minutes() < 10 ? '0' : ''
         }${localeDate.minutes()}`;
 
+        //* Validate Day
         const today = localeDate.format('ddd').toLowerCase();
         if (!group.config.days.includes(today)) continue;
 
+        //* Manage Cycles Start & Stop
         for (let i = 0; i < group.config.sessionPeriods.length; i++) {
           const session = group.config.sessionPeriods[i];
           if (
@@ -66,22 +69,7 @@ export const schedulerCron = new CronJob(
                 'Time cycle has been started, go and have fun with your works!'
               );
 
-              await bot.api.setChatPermissions(group.chatId as number, {
-                can_send_messages: false,
-                can_send_audios: false,
-                can_send_documents: false,
-                can_send_photos: false,
-                can_send_videos: false,
-                can_send_video_notes: false,
-                can_send_voice_notes: false,
-                can_send_polls: false,
-                can_send_other_messages: false,
-                can_add_web_page_previews: false,
-                can_change_info: false,
-                can_invite_users: false,
-                can_pin_messages: false,
-                can_manage_topics: false,
-              });
+              toggleChat(group.chatId as number, false);
             }
           } else if (session.end <= time) {
             if (
@@ -93,27 +81,58 @@ export const schedulerCron = new CronJob(
                 await Cycle.deleteMany({ group: group._id });
 
                 //? open chat
-                await bot.api.setChatPermissions(group.chatId as number, {
-                  can_send_messages: true,
-                  can_send_audios: true,
-                  can_send_documents: true,
-                  can_send_photos: true,
-                  can_send_videos: true,
-                  can_send_video_notes: true,
-                  can_send_voice_notes: true,
-                  can_send_polls: true,
-                  can_send_other_messages: true,
-                  can_add_web_page_previews: true,
-                  can_change_info: true,
-                  can_invite_users: true,
-                  can_pin_messages: true,
-                  can_manage_topics: true,
-                });
+                toggleChat(group.chatId as number, true);
 
                 await bot.api.sendMessage(
                   group.chatId as number,
                   "Congratulation🥳. Cycle has been finished successfully, let's have a deep rest!"
                 );
+              }
+            }
+          }
+        }
+
+        //* Manage Cycle Slots
+        const cycle = await Cycle.findOne({ group: group._id });
+        if (cycle) {
+          //? get current slot
+          const currentSlot = cycle.slots[cycle.currentSlotIndex];
+          if (!currentSlot) continue;
+
+          //? get now and where this slot gonna ends dates
+          const now = new Date();
+          const currentSlotStart = new Date(cycle.lastSlotStart as Date);
+          currentSlotStart.setMinutes(
+            currentSlotStart.getMinutes() + currentSlot
+          );
+
+          if (now >= currentSlotStart) {
+            const wasFocusedTime = cycle.currentSlotIndex % 2 === 0;
+
+            //? seek to next slot
+            cycle.currentSlotIndex =
+              cycle.slots.length === cycle.currentSlotIndex + 1
+                ? 0
+                : cycle.currentSlotIndex + 1;
+            cycle.lastSlotStart = currentSlotStart;
+            await cycle.save();
+
+            const group = await Group.findById(cycle.group);
+            if (group) {
+              if (wasFocusedTime) {
+                //? rest time
+                toggleChat(group.chatId as number, true);
+                await bot.api.sendMessage(
+                  group.chatId as number,
+                  "Rest time 😌! let's take a rest and prepare yourself for next focus time."
+                );
+              } else {
+                //? focus time
+                await bot.api.sendMessage(
+                  group.chatId as number,
+                  "Focus time 🤫! let's back again to your tasks."
+                );
+                toggleChat(group.chatId as number, false);
               }
             }
           }
@@ -145,3 +164,22 @@ export const schedulerCron = new CronJob(
   false,
   'UTC'
 );
+
+const toggleChat = async (chatId: number, open: boolean) => {
+  await bot.api.setChatPermissions(chatId, {
+    can_send_messages: open,
+    can_send_audios: open,
+    can_send_documents: open,
+    can_send_photos: open,
+    can_send_videos: open,
+    can_send_video_notes: open,
+    can_send_voice_notes: open,
+    can_send_polls: open,
+    can_send_other_messages: open,
+    can_add_web_page_previews: open,
+    can_change_info: open,
+    can_invite_users: open,
+    can_pin_messages: open,
+    can_manage_topics: open,
+  });
+};
