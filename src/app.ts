@@ -80,7 +80,7 @@ bot.command('config', async (ctx) => {
     throw new KnownUserError("You're not allowed to manage this group!");
 
   const message = await ctx.reply(
-    'Send your configurations in this format as a reply of this message:\n---------------------------------------------------\n\n[DAYS YOU WANT TO STUDY] (eg. sat,sun,mon,...)\n[SESSION PERIODS] (eg. 16:00-18:00,20:00-22:00)\n[FOCUS & REST CYCLES] (eg. 25m-5m,1h-20m)\n\n---------------------------------------------------',
+    'Send your configurations in this format as a reply of this message:\n---------------------------------------------------\n\n[TIMEZONE OFFSET] (eg. +3:30)\n[DAYS YOU WANT TO STUDY] (eg. sat,sun,mon,...)\n[SESSION PERIODS] (eg. 16:00-18:00,20:00-22:00)\n[FOCUS & REST CYCLES] (eg. 25m-5m,1h-20m)\n\n---------------------------------------------------',
     {
       reply_parameters: ctx.message
         ? {
@@ -180,3 +180,7 @@ bot.start({
 });
 
 export { bot };
+
+//? import after bot exportation
+import { schedulerCron } from './schedules';
+schedulerCron.start();

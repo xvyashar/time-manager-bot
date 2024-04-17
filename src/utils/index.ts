@@ -1,8 +1,4 @@
-import {
-  ExtractedConfig,
-  FocusRestCycle,
-  SessionPeriod,
-} from '../types/utils.type';
+import { ExtractedConfig, FocusRestCycle, SessionPeriod } from '../types';
 import { configRegex } from '../constants';
 import { KnownUserError } from '../errors';
 
@@ -12,7 +8,7 @@ export const validateConfig = (input: string): ExtractedConfig => {
     throw new KnownUserError('Invalid config format');
   }
 
-  const [, days, sessionPeriods, focusRestCycles] = match;
+  const [, timezoneOffset, days, sessionPeriods, focusRestCycles] = match;
 
   const formattedSessionPeriods: SessionPeriod[] = sessionPeriods
     .split(',')
@@ -32,6 +28,7 @@ export const validateConfig = (input: string): ExtractedConfig => {
     });
 
   return {
+    timezoneOffset: timeToMinutes(timezoneOffset),
     days: days.split(','),
     sessionPeriods: formattedSessionPeriods,
     focusRestCycles: formattedCycles,
@@ -47,4 +44,41 @@ const arePeriodsValid = (periods: SessionPeriod[]): boolean => {
   }
 
   return true;
+};
+
+export const timeToMinutes = (time: string): number => {
+  let sign = time.substring(0, 1);
+  if (sign === '+' || sign === '-') time = time.substring(1);
+  else sign = '';
+  const [hours, minutes] = time.split(':');
+
+  return +`${sign}${+hours * 60 + +minutes}`;
+};
+
+export const extractCycles = (cycles: FocusRestCycle[]): number[] => {
+  const extracted: number[] = [];
+
+  for (const cycle of cycles) {
+    let sign = cycle.focusDuration.substring(cycle.focusDuration.length - 1);
+    if (sign === 'm')
+      extracted.push(
+        +cycle.focusDuration.substring(0, cycle.focusDuration.length - 1)
+      );
+    else if (sign === 'h')
+      extracted.push(
+        +cycle.focusDuration.substring(0, cycle.focusDuration.length - 1) * 60
+      );
+
+    sign = cycle.restDuration.substring(cycle.restDuration.length - 1);
+    if (sign === 'm')
+      extracted.push(
+        +cycle.restDuration.substring(0, cycle.restDuration.length - 1)
+      );
+    else if (sign === 'h')
+      extracted.push(
+        +cycle.restDuration.substring(0, cycle.restDuration.length - 1) * 60
+      );
+  }
+
+  return extracted;
 };

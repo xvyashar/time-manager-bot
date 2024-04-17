@@ -9,6 +9,7 @@ export interface FocusRestCycle {
 }
 
 export interface ExtractedConfig {
+  timezoneOffset: number;
   days: string[];
   sessionPeriods: SessionPeriod[];
   focusRestCycles: FocusRestCycle[];

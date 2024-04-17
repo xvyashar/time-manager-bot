@@ -14,3 +14,4 @@ export const connectDB = async () => {
 
 export * from './user.schema';
 export * from './group.schema';
+export * from './cycle.schema';

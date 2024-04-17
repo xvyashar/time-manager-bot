@@ -13,8 +13,10 @@
   "license": "ISC",
   "dependencies": {
     "@grammyjs/chat-members": "^1.1.0",
+    "cron": "^3.1.7",
     "dotenv": "^16.4.5",
     "grammy": "^1.22.4",
+    "moment-timezone": "^0.5.45",
     "mongoose": "^8.3.1",
     "rimraf": "^5.0.5"
   },

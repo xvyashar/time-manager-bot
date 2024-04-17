@@ -1,2 +1,4 @@
 export const configRegex =
-  /^((?:sat|sun|mon|tue|wed|thu|fri)(?:,(?:sat|sun|mon|tue|wed|thu|fri))*)\s+((?:[0-2][0-9]:[0-5][0-9]-[0-2][0-9]:[0-5][0-9],?)+)\s+((?:[0-9]+[mh]-[0-9]+[mh],?)+)?$/;
+  /^([+-]\d{1,2}:\d{2})\s+((?:sat|sun|mon|tue|wed|thu|fri)(?:,(?:sat|sun|mon|tue|wed|thu|fri))*)\s+((?:[0-2][0-9]:[0-5][0-9]-[0-2][0-9]:[0-5][0-9],?)+)\s+((?:[0-9]+[mh]-[0-9]+[mh],?)+)?$/;
+export const schedulerCronPattern = '* * * * *';
+export const minutesBeforeCycleStart = 5;
