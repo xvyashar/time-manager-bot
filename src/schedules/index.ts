@@ -207,6 +207,6 @@ const toggleChat = async (chatId: number, open: boolean) => {
       can_manage_topics: open,
     });
   } catch (error: any) {
-    if (!error?.description.includes('CHAT_NOT_MODIFIED')) console.log(error);
+    if (!error?.description?.includes('CHAT_NOT_MODIFIED')) console.log(error);
   }
 };
