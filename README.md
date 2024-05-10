@@ -1,4 +1,4 @@
-# Time Manager Bot
+# ![icon](./bot_icon.svg) Time Manager Bot
 This bot is made for handling your focus cycle with your friends and have fun with each other!
 
 ## How This Bot Works
